@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/macbook/Developer/MoveClipBoard/build/Build/Products/Release/MoveClipBoard.app/Contents/MacOS/MoveClipBoard'
+relocations:     []
+...

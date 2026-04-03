@@ -265,33 +265,32 @@ enum AppTab { case clipboard, snippets }
 // MARK: - Design Tokens
 
 private enum DS {
-    static let hPad:    CGFloat = 14
-    static let rowV:    CGFloat = 3
-    static let radius:  CGFloat = 6
-    static let width:   CGFloat = 360
+    static let hPad:   CGFloat = 16
+    static let rowV:   CGFloat = 5
+    static let radius: CGFloat = 8
+    static let width:  CGFloat = 380
 }
 
 // MARK: - Content View
 
 struct ContentView: View {
-    @State private var cm      = ClipboardManager()
-    @State private var sm      = SimulatorManager()
-    @State private var snm     = SnippetsManager()
-    @State private var tab:    AppTab = .clipboard
-    @State private var search  = ""
-    @State private var showAdd = false
+    @State private var cm        = ClipboardManager()
+    @State private var sm        = SimulatorManager()
+    @State private var snm       = SnippetsManager()
+    @State private var tab:      AppTab = .clipboard
+    @State private var search    = ""
+    @State private var showAdd   = false
     @State private var addPrefill = ""
 
     var body: some View {
         VStack(spacing: 0) {
-            ToolbarSection(tab: $tab, showAdd: $showAdd, addPrefill: $addPrefill)
+            HeaderBar(tab: $tab, showAdd: $showAdd, addPrefill: $addPrefill)
             Divider()
-            DeviceSection()
+            SimulatorBar()
             Divider()
-
             switch tab {
-            case .clipboard: ClipboardContent(search: $search)
-            case .snippets:  SnippetsContent(showAdd: $showAdd, addPrefill: $addPrefill)
+            case .clipboard: ClipboardTab(search: $search)
+            case .snippets:  SnippetsTab()
             }
         }
         .environment(cm)
@@ -305,68 +304,87 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Toolbar
+// MARK: - Header Bar
 
-struct ToolbarSection: View {
+struct HeaderBar: View {
     @Binding var tab: AppTab
     @Binding var showAdd: Bool
     @Binding var addPrefill: String
 
     var body: some View {
         HStack(spacing: 10) {
-            // Tab control
-            Picker("", selection: $tab) {
-                Label("Clipboard", systemImage: "clock.fill").tag(AppTab.clipboard)
-                Label("Snippets",  systemImage: "bookmark.fill").tag(AppTab.snippets)
+            // App identity
+            HStack(spacing: 6) {
+                Image(systemName: "doc.on.clipboard.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text("MoveClipBoard")
+                    .font(.system(size: 13, weight: .semibold))
             }
-            .pickerStyle(.segmented)
-            .frame(width: 120)
 
             Spacer()
 
+            // Tab switcher — icon-only segmented control
+            Picker("", selection: $tab) {
+                Image(systemName: "clock").tag(AppTab.clipboard)
+                Image(systemName: "bookmark").tag(AppTab.snippets)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 72)
+            .help("Switch tab")
+
+            // Add button (snippets only)
             if tab == .snippets {
                 Button {
                     addPrefill = NSPasteboard.general.string(forType: .string) ?? ""
                     showAdd = true
                 } label: {
-                    Label("New", systemImage: "plus")
-                        .font(.caption.weight(.medium))
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
+                        .frame(width: 22, height: 22)
+                        .background(Color.accentColor.opacity(0.1),
+                                    in: RoundedRectangle(cornerRadius: 5))
                 }
                 .buttonStyle(.plain)
                 .help("Add Snippet")
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
 
+            // Quit
             Button { NSApplication.shared.terminate(nil) } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.quaternary)
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
-            .help("Quit")
+            .help("Quit MoveClipBoard")
         }
         .padding(.horizontal, DS.hPad)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
+        .animation(.easeInOut(duration: 0.15), value: tab)
     }
 }
 
-// MARK: - Device Section
+// MARK: - Simulator Bar
 
-struct DeviceSection: View {
+struct SimulatorBar: View {
     @Environment(SimulatorManager.self) private var sm
     @Environment(ClipboardManager.self) private var cm
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "iphone")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            // Device picker
+            HStack(spacing: 6) {
+                Image(systemName: "iphone")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
 
-            Group {
                 if sm.noSimulatorRunning {
                     Text("No booted simulator")
-                        .font(.callout)
+                        .font(.system(size: 12))
                         .foregroundStyle(.tertiary)
                 } else {
                     @Bindable var b = sm
@@ -376,50 +394,50 @@ struct DeviceSection: View {
                         }
                     }
                     .labelsHidden()
-                    .font(.callout)
+                    .font(.system(size: 12))
+                    .fixedSize()
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            // Mac → Sim
-            ActionChip(label: "→ Sim", tint: .green, tip: "Send Mac clipboard to simulator") {
-                let t = NSPasteboard.general.string(forType: .string) ?? ""
-                guard !t.isEmpty else { return }
-                sm.pushToSim(t)
-            }
-            .disabled(sm.selectedID.isEmpty)
-
-            // Sim → Mac
-            ActionChip(label: "← Mac", tint: .orange, tip: "Pull simulator clipboard to Mac") {
-                Task {
-                    if let t = await sm.pullFromSim() { cm.copyToMac(t) }
+            // Actions
+            HStack(spacing: 6) {
+                SyncChip(label: "→ Sim", tint: .green, tip: "Send Mac clipboard to Simulator") {
+                    let t = NSPasteboard.general.string(forType: .string) ?? ""
+                    guard !t.isEmpty else { return }
+                    sm.pushToSim(t)
                 }
-            }
-            .disabled(sm.selectedID.isEmpty)
+                .disabled(sm.selectedID.isEmpty)
 
-            // Refresh
-            Button { sm.refresh() } label: {
-                Group {
-                    if sm.isRefreshing {
-                        ProgressView().scaleEffect(0.55).frame(width: 13, height: 13)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.callout)
-                            .foregroundStyle(.tertiary)
+                SyncChip(label: "← Mac", tint: .orange, tip: "Pull Simulator clipboard to Mac") {
+                    Task {
+                        if let t = await sm.pullFromSim() { cm.copyToMac(t) }
                     }
                 }
-                .frame(width: 20, height: 20)
+                .disabled(sm.selectedID.isEmpty)
+
+                Button { sm.refresh() } label: {
+                    ZStack {
+                        if sm.isRefreshing {
+                            ProgressView().scaleEffect(0.5).frame(width: 14, height: 14)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .help("Refresh Simulators")
             }
-            .buttonStyle(.plain)
-            .help("Refresh Simulators")
         }
         .padding(.horizontal, DS.hPad)
         .padding(.vertical, 9)
     }
 }
 
-struct ActionChip: View {
+struct SyncChip: View {
     let label: String
     let tint: Color
     let tip: String
@@ -429,25 +447,26 @@ struct ActionChip: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(hovered ? .white : tint)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(hovered ? tint : tint.opacity(0.12),
-                            in: RoundedRectangle(cornerRadius: DS.radius))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(
+                    hovered ? tint : tint.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 6)
+                )
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .help(tip)
-        .animation(.easeInOut(duration: 0.12), value: hovered)
+        .animation(.easeInOut(duration: 0.1), value: hovered)
     }
 }
 
-// MARK: - Clipboard Content
+// MARK: - Clipboard Tab
 
-struct ClipboardContent: View {
+struct ClipboardTab: View {
     @Environment(ClipboardManager.self) private var cm
-    @Environment(SimulatorManager.self) private var sm
     @Binding var search: String
 
     var filtered: [ClipItem] {
@@ -457,64 +476,35 @@ struct ClipboardContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-
-            // ── Aktif clipboard ────────────────────────────────
             if !cm.currentContent.isEmpty && search.isEmpty {
                 CurrentClipCard()
                 Divider()
             }
 
-            // ── Arama ──────────────────────────────────────────
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.callout)
-                    .foregroundStyle(.quaternary)
-                TextField("Search history…", text: $search)
-                    .textFieldStyle(.plain)
-                    .font(.callout)
-                if !search.isEmpty {
-                    Button { search = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.callout)
-                            .foregroundStyle(.quaternary)
-                    }.buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, DS.hPad)
-            .padding(.vertical, 8)
-
+            SearchBar(text: $search, placeholder: "Search history…")
             Divider()
 
-            // ── Liste ──────────────────────────────────────────
             if filtered.isEmpty {
-                VStack(spacing: 6) {
-                    Image(systemName: search.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.quaternary)
-                    Text(search.isEmpty ? "Nothing copied yet" : "No results found")
-                        .font(.callout)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
+                EmptyPane(
+                    icon: search.isEmpty ? "doc.on.clipboard" : "magnifyingglass",
+                    title: search.isEmpty ? "Nothing copied yet" : "No results",
+                    subtitle: search.isEmpty
+                        ? "Items you copy will appear here"
+                        : "Try a different search term"
+                )
             } else {
-                // Section header
-                HStack {
-                    Text(search.isEmpty ? "Last 10 copies" : "\(filtered.count) results")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.tertiary)
-                        .textCase(.uppercase)
-                    Spacer()
+                SectionHeader(
+                    title: search.isEmpty
+                        ? "Recent"
+                        : "\(filtered.count) result\(filtered.count == 1 ? "" : "s")"
+                ) {
                     if search.isEmpty && !cm.history.isEmpty {
-                        Button("Clear") { cm.clearAll() }
-                            .font(.caption)
+                        Button("Clear All") { cm.clearAll() }
+                            .font(.system(size: 11))
                             .foregroundStyle(.tertiary)
                             .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, DS.hPad)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
 
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -526,7 +516,7 @@ struct ClipboardContent: View {
                         }
                     }
                 }
-                .frame(maxHeight: 185)
+                .frame(maxHeight: 220)
                 .padding(.bottom, 4)
             }
         }
@@ -544,53 +534,59 @@ struct CurrentClipCard: View {
     var kind: ContentKind { ContentKind.of(cm.currentContent) }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
+            // Type badge
+            Image(systemName: kind.icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(kind.color)
+                .frame(width: 30, height: 30)
+                .background(kind.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
             VStack(alignment: .leading, spacing: 4) {
-                Label("On Clipboard", systemImage: kind.icon)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(kind.color)
+                Text("On Clipboard")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .kerning(0.4)
 
                 Text(cm.currentContent)
-                    .font(.system(size: 13, design: kind == .text ? .default : .monospaced))
-                    .lineLimit(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
+                    .font(.system(size: 12, design: kind == .text ? .default : .monospaced))
+                    .lineLimit(3)
                     .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Divider()
-
-            VStack(spacing: 6) {
-                SmallIconButton(
-                    icon: copied ? "checkmark" : "doc.on.doc",
-                    label: copied ? "Copied" : "Copy",
-                    tint: copied ? .green : .secondary
+            // Action buttons
+            VStack(spacing: 4) {
+                CardActionButton(
+                    icon: copied ? "checkmark" : "doc.on.doc.fill",
+                    label: copied ? "Copied!" : "Copy",
+                    tint: copied ? .green : Color.accentColor
                 ) {
                     cm.copyToMac(cm.currentContent)
-                    copied = true
-                    Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
+                    withAnimation { copied = true }
+                    Task { try? await Task.sleep(for: .seconds(1.5)); withAnimation { copied = false } }
                 }
 
-                SmallIconButton(
-                    icon: sent ? "checkmark" : "iphone.and.arrow.forward",
-                    label: sent ? "Sent" : "To Sim",
-                    tint: sent ? .green : .secondary
+                CardActionButton(
+                    icon: sent ? "checkmark" : "arrow.right.to.line",
+                    label: sent ? "Sent!" : "→ Sim",
+                    tint: sent ? .green : .orange
                 ) {
                     sm.pushToSim(cm.currentContent)
-                    sent = true
-                    Task { try? await Task.sleep(for: .seconds(1.5)); sent = false }
+                    withAnimation { sent = true }
+                    Task { try? await Task.sleep(for: .seconds(1.5)); withAnimation { sent = false } }
                 }
                 .disabled(sm.selectedID.isEmpty)
             }
-            .frame(width: 52)
         }
         .padding(.horizontal, DS.hPad)
-        .padding(.vertical, 10)
-        .background(Color.accentColor.opacity(0.05))
+        .padding(.vertical, 11)
+        .background(Color.accentColor.opacity(0.04))
     }
 }
 
-struct SmallIconButton: View {
+struct CardActionButton: View {
     let icon: String
     let label: String
     let tint: Color
@@ -599,22 +595,100 @@ struct SmallIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(hovered ? tint : tint.opacity(0.8))
+                    .font(.system(size: 12, weight: .semibold))
                 Text(label)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 9, weight: .medium))
             }
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(hovered ? tint : tint.opacity(0.75))
+            .frame(width: 50)
             .padding(.vertical, 5)
-            .background(hovered ? tint.opacity(0.1) : .clear,
-                        in: RoundedRectangle(cornerRadius: DS.radius))
+            .background(
+                hovered ? tint.opacity(0.1) : Color.primary.opacity(0.04),
+                in: RoundedRectangle(cornerRadius: 6)
+            )
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .animation(.easeInOut(duration: 0.1), value: hovered)
+    }
+}
+
+// MARK: - Search Bar
+
+struct SearchBar: View {
+    @Binding var text: String
+    let placeholder: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.quaternary)
+
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.quaternary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, DS.hPad)
+        .padding(.vertical, 9)
+    }
+}
+
+// MARK: - Section Header
+
+struct SectionHeader<T: View>: View {
+    let title: String
+    @ViewBuilder var trailing: T
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .kerning(0.5)
+            Spacer()
+            trailing
+        }
+        .padding(.horizontal, DS.hPad)
+        .padding(.top, 10)
+        .padding(.bottom, 5)
+    }
+}
+
+// MARK: - Empty Pane
+
+struct EmptyPane: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(.quaternary)
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(subtitle)
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 36)
+        .padding(.horizontal, DS.hPad)
     }
 }
 
@@ -635,25 +709,39 @@ struct ClipRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            // Type icon badge
             Image(systemName: kind.icon)
-                .font(.system(size: 10))
-                .foregroundStyle(kind.color)
-                .frame(width: 12)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isCurrent ? Color.accentColor : kind.color)
+                .frame(width: 14, height: 14)
+                .padding(4)
+                .background(
+                    (isCurrent ? Color.accentColor : kind.color).opacity(0.1),
+                    in: RoundedRectangle(cornerRadius: 4)
+                )
 
             Text(item.content)
-                .font(.system(size: 13, design: kind == .text ? .default : .monospaced))
+                .font(.system(size: 12, design: kind == .text ? .default : .monospaced))
                 .lineLimit(1)
-                .foregroundStyle(.primary)
+                .foregroundStyle(isCurrent ? .primary : .secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 2) {
-                RowBtn(icon: copied ? "checkmark" : "doc.on.doc", tint: copied ? .green : .secondary) {
+            // Action buttons — visible on hover or when current
+            HStack(spacing: 1) {
+                RowIconBtn(
+                    icon: copied ? "checkmark" : "doc.on.doc",
+                    tint: copied ? .green : .secondary
+                ) {
                     cm.copyToMac(item.content)
                     copied = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
-                }.help("Copy")
+                }
+                .help("Copy")
 
-                RowBtn(icon: sent ? "checkmark" : "iphone.and.arrow.forward", tint: sent ? .green : .secondary) {
+                RowIconBtn(
+                    icon: sent ? "checkmark" : "arrow.right.to.line",
+                    tint: sent ? .green : .secondary
+                ) {
                     sm.pushToSim(item.content)
                     sent = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); sent = false }
@@ -661,34 +749,29 @@ struct ClipRow: View {
                 .disabled(sm.selectedID.isEmpty)
                 .help("Send to Simulator")
             }
-            .opacity(hovered || isCurrent ? 1 : 0.15)
+            .opacity(hovered || isCurrent ? 1 : 0)
         }
-        .padding(.leading, DS.hPad + 6)
-        .padding(.trailing, DS.hPad)
+        .padding(.horizontal, DS.hPad)
         .padding(.vertical, DS.rowV)
         .background(
-            isCurrent ? Color.accentColor.opacity(0.07) :
-            hovered   ? Color.primary.opacity(0.05) : .clear
+            isCurrent ? Color.accentColor.opacity(0.06) :
+            hovered   ? Color.primary.opacity(0.04) : .clear
         )
-        .animation(.easeInOut(duration: 0.1), value: hovered)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
-        .onTapGesture {
-            cm.copyToMac(item.content)
-            copied = true
-            Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
-        }
+        .onTapGesture { cm.copyToMac(item.content) }
         .contextMenu {
-            Button("Copy")                   { cm.copyToMac(item.content) }
-            Button("Send to Simulator")       { sm.pushToSim(item.content) }
-            Button("Save as Snippet")         { snm.add(item.content) }
+            Button("Copy")                       { cm.copyToMac(item.content) }
+            Button("Send to Simulator")          { sm.pushToSim(item.content) }
+            Button("Save as Snippet")            { snm.add(item.content) }
             Divider()
-            Button("Delete", role: .destructive){ cm.remove(item) }
+            Button("Delete", role: .destructive) { cm.remove(item) }
         }
+        .animation(.easeInOut(duration: 0.1), value: hovered)
     }
 }
 
-struct RowBtn: View {
+struct RowIconBtn: View {
     let icon: String
     let tint: Color
     let action: () -> Void
@@ -698,48 +781,29 @@ struct RowBtn: View {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(tint)
-                .frame(width: 24, height: 24)
+                .frame(width: 26, height: 26)
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - Snippets Content
+// MARK: - Snippets Tab
 
-struct SnippetsContent: View {
-    @Environment(SnippetsManager.self)  private var snm
-    @Environment(ClipboardManager.self) private var cm
-    @Binding var showAdd: Bool
-    @Binding var addPrefill: String
+struct SnippetsTab: View {
+    @Environment(SnippetsManager.self) private var snm
 
     var body: some View {
         VStack(spacing: 0) {
             if snm.items.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "bookmark")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.quaternary)
-                    Text("No snippets")
-                        .font(.callout)
-                        .foregroundStyle(.tertiary)
-                    Text("Save frequently used text\nusing the + button")
-                        .font(.caption)
-                        .foregroundStyle(.quaternary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 50)
+                EmptyPane(
+                    icon: "bookmark",
+                    title: "No Snippets",
+                    subtitle: "Save frequently used text\nfor quick access"
+                )
             } else {
-                HStack {
-                    Text("\(snm.items.count) snippet\(snm.items.count == 1 ? "" : "s")")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.tertiary)
-                        .textCase(.uppercase)
-                    Spacer()
-                }
-                .padding(.horizontal, DS.hPad)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                SectionHeader(
+                    title: "\(snm.items.count) snippet\(snm.items.count == 1 ? "" : "s")"
+                ) { EmptyView() }
 
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -751,7 +815,7 @@ struct SnippetsContent: View {
                         }
                     }
                 }
-                .frame(maxHeight: 420)
+                .frame(maxHeight: 400)
                 .padding(.bottom, 4)
             }
         }
@@ -771,24 +835,33 @@ struct SnippetRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "bookmark.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.accentColor.opacity(0.6))
-                .frame(width: 12)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Color.accentColor.opacity(0.7))
+                .frame(width: 14, height: 14)
+                .padding(4)
+                .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 4))
 
             Text(item.content)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .lineLimit(2)
-                .foregroundStyle(.primary)
+                .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 2) {
-                RowBtn(icon: copied ? "checkmark" : "doc.on.doc", tint: copied ? .green : .secondary) {
+            HStack(spacing: 1) {
+                RowIconBtn(
+                    icon: copied ? "checkmark" : "doc.on.doc",
+                    tint: copied ? .green : .secondary
+                ) {
                     cm.copyToMac(item.content)
                     copied = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
-                }.help("Copy")
+                }
+                .help("Copy")
 
-                RowBtn(icon: sent ? "checkmark" : "iphone.and.arrow.forward", tint: sent ? .green : .secondary) {
+                RowIconBtn(
+                    icon: sent ? "checkmark" : "arrow.right.to.line",
+                    tint: sent ? .green : .secondary
+                ) {
                     sm.pushToSim(item.content)
                     sent = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); sent = false }
@@ -796,13 +869,11 @@ struct SnippetRow: View {
                 .disabled(sm.selectedID.isEmpty)
                 .help("Send to Simulator")
             }
-            .opacity(hovered ? 1 : 0.15)
+            .opacity(hovered ? 1 : 0)
         }
-        .padding(.leading, DS.hPad + 6)
-        .padding(.trailing, DS.hPad)
+        .padding(.horizontal, DS.hPad)
         .padding(.vertical, DS.rowV)
-        .background(hovered ? Color.primary.opacity(0.05) : .clear)
-        .animation(.easeInOut(duration: 0.1), value: hovered)
+        .background(hovered ? Color.primary.opacity(0.04) : .clear)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         .onTapGesture {
@@ -811,11 +882,12 @@ struct SnippetRow: View {
             Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
         }
         .contextMenu {
-            Button("Copy")                    { cm.copyToMac(item.content) }
-            Button("Send to Simulator")        { sm.pushToSim(item.content) }
+            Button("Copy")                       { cm.copyToMac(item.content) }
+            Button("Send to Simulator")          { sm.pushToSim(item.content) }
             Divider()
             Button("Delete", role: .destructive) { snm.remove(item) }
         }
+        .animation(.easeInOut(duration: 0.1), value: hovered)
     }
 }
 
@@ -827,18 +899,36 @@ struct AddSnippetSheet: View {
     var initialText: String
     @State private var text = ""
 
+    var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("New Snippet")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("New Snippet", systemImage: "bookmark.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 14)
+
+            Divider()
 
             TextEditor(text: $text)
                 .font(.system(.body, design: .monospaced))
-                .frame(height: 120)
                 .scrollContentBackground(.hidden)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: DS.radius))
-                .overlay(RoundedRectangle(cornerRadius: DS.radius)
-                    .stroke(Color.primary.opacity(0.08)))
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: DS.radius)
+                        .fill(Color.primary.opacity(0.04))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DS.radius)
+                                .stroke(Color.primary.opacity(0.08))
+                        )
+                )
+                .frame(height: 130)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
 
             HStack {
                 Button("Cancel") { isPresented = false }
@@ -849,11 +939,13 @@ struct AddSnippetSheet: View {
                 Button("Save") { snm.add(text); isPresented = false }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
-                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(trimmed.isEmpty)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 18)
         }
-        .padding(18)
-        .frame(width: 320)
+        .frame(width: 340)
         .onAppear { text = initialText }
     }
 }
