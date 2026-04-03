@@ -10,8 +10,9 @@ import SwiftUI
 @main
 struct MoveClipBoardApp: App {
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra("MoveClipBoard", systemImage: "doc.on.clipboard") {
             ContentView()
         }
+        .menuBarExtraStyle(.window)
     }
 }
