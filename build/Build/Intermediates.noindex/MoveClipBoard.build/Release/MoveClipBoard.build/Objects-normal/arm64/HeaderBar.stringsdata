@@ -1,0 +1,48 @@
+{
+  "source": "/Users/macbook/Developer/MoveClipBoard/MoveClipBoard/Views/HeaderBar.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Switch tab",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 27
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Snippet",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quit MoveClipBoard",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "MoveClipBoard",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 15
+        }
+      }
+    ]
+  },
+  "version": 1
+}
