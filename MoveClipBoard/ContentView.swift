@@ -249,13 +249,13 @@ class SnippetsManager {
 
 func mcbAgo(_ date: Date) -> String {
     let s = Int(-date.timeIntervalSinceNow)
-    if s < 2  { return "şimdi" }
-    if s < 60 { return "\(s)sn" }
+    if s < 2  { return "now" }
+    if s < 60 { return "\(s)s" }
     let m = s / 60
-    if m < 60 { return "\(m)dk" }
+    if m < 60 { return "\(m)m" }
     let h = m / 60
-    if h < 24 { return "\(h)sa" }
-    return "\(h/24)g"
+    if h < 24 { return "\(h)h" }
+    return "\(h/24)d"
 }
 
 // MARK: - App Tab
@@ -329,12 +329,12 @@ struct ToolbarSection: View {
                     addPrefill = NSPasteboard.general.string(forType: .string) ?? ""
                     showAdd = true
                 } label: {
-                    Label("Yeni", systemImage: "plus")
+                    Label("New", systemImage: "plus")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
-                .help("Snippet Ekle")
+                .help("Add Snippet")
             }
 
             Button { NSApplication.shared.terminate(nil) } label: {
@@ -344,7 +344,7 @@ struct ToolbarSection: View {
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
-            .help("Uygulamayı Kapat")
+            .help("Quit")
         }
         .padding(.horizontal, DS.hPad)
         .padding(.vertical, 10)
@@ -365,7 +365,7 @@ struct DeviceSection: View {
 
             Group {
                 if sm.noSimulatorRunning {
-                    Text("Booted simülatör yok")
+                    Text("No booted simulator")
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 } else {
@@ -383,7 +383,7 @@ struct DeviceSection: View {
             Spacer()
 
             // Mac → Sim
-            ActionChip(label: "→ Sim", tint: .green, tip: "Mac clipboard'ını simülatöre gönder") {
+            ActionChip(label: "→ Sim", tint: .green, tip: "Send Mac clipboard to simulator") {
                 let t = NSPasteboard.general.string(forType: .string) ?? ""
                 guard !t.isEmpty else { return }
                 sm.pushToSim(t)
@@ -391,7 +391,7 @@ struct DeviceSection: View {
             .disabled(sm.selectedID.isEmpty)
 
             // Sim → Mac
-            ActionChip(label: "← Mac", tint: .orange, tip: "Simülatör clipboard'ını Mac'e al") {
+            ActionChip(label: "← Mac", tint: .orange, tip: "Pull simulator clipboard to Mac") {
                 Task {
                     if let t = await sm.pullFromSim() { cm.copyToMac(t) }
                 }
@@ -412,7 +412,7 @@ struct DeviceSection: View {
                 .frame(width: 20, height: 20)
             }
             .buttonStyle(.plain)
-            .help("Simülatörleri Yenile")
+            .help("Refresh Simulators")
         }
         .padding(.horizontal, DS.hPad)
         .padding(.vertical, 9)
@@ -469,7 +469,7 @@ struct ClipboardContent: View {
                 Image(systemName: "magnifyingglass")
                     .font(.callout)
                     .foregroundStyle(.quaternary)
-                TextField("Geçmişte ara…", text: $search)
+                TextField("Search history…", text: $search)
                     .textFieldStyle(.plain)
                     .font(.callout)
                 if !search.isEmpty {
@@ -491,7 +491,7 @@ struct ClipboardContent: View {
                     Image(systemName: search.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
                         .font(.system(size: 24))
                         .foregroundStyle(.quaternary)
-                    Text(search.isEmpty ? "Henüz bir şey kopyalamadın" : "Sonuç bulunamadı")
+                    Text(search.isEmpty ? "Nothing copied yet" : "No results found")
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 }
@@ -500,13 +500,13 @@ struct ClipboardContent: View {
             } else {
                 // Section header
                 HStack {
-                    Text(search.isEmpty ? "Son 10 kopyalama" : "\(filtered.count) sonuç")
+                    Text(search.isEmpty ? "Last 10 copies" : "\(filtered.count) results")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.tertiary)
                         .textCase(.uppercase)
                     Spacer()
                     if search.isEmpty && !cm.history.isEmpty {
-                        Button("Temizle") { cm.clearAll() }
+                        Button("Clear") { cm.clearAll() }
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                             .buttonStyle(.plain)
@@ -546,7 +546,7 @@ struct CurrentClipCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Label("Panoda", systemImage: kind.icon)
+                Label("On Clipboard", systemImage: kind.icon)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(kind.color)
 
@@ -563,7 +563,7 @@ struct CurrentClipCard: View {
             VStack(spacing: 6) {
                 SmallIconButton(
                     icon: copied ? "checkmark" : "doc.on.doc",
-                    label: copied ? "Kopyalandı" : "Kopyala",
+                    label: copied ? "Copied" : "Copy",
                     tint: copied ? .green : .secondary
                 ) {
                     cm.copyToMac(cm.currentContent)
@@ -573,7 +573,7 @@ struct CurrentClipCard: View {
 
                 SmallIconButton(
                     icon: sent ? "checkmark" : "iphone.and.arrow.forward",
-                    label: sent ? "Gönderildi" : "Sim'e",
+                    label: sent ? "Sent" : "To Sim",
                     tint: sent ? .green : .secondary
                 ) {
                     sm.pushToSim(cm.currentContent)
@@ -651,7 +651,7 @@ struct ClipRow: View {
                     cm.copyToMac(item.content)
                     copied = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
-                }.help("Kopyala")
+                }.help("Copy")
 
                 RowBtn(icon: sent ? "checkmark" : "iphone.and.arrow.forward", tint: sent ? .green : .secondary) {
                     sm.pushToSim(item.content)
@@ -659,7 +659,7 @@ struct ClipRow: View {
                     Task { try? await Task.sleep(for: .seconds(1.5)); sent = false }
                 }
                 .disabled(sm.selectedID.isEmpty)
-                .help("Simülatöre Gönder")
+                .help("Send to Simulator")
             }
             .opacity(hovered || isCurrent ? 1 : 0.15)
         }
@@ -679,11 +679,11 @@ struct ClipRow: View {
             Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
         }
         .contextMenu {
-            Button("Kopyala")                { cm.copyToMac(item.content) }
-            Button("Simülatöre Gönder")      { sm.pushToSim(item.content) }
-            Button("Snippet Olarak Kaydet")  { snm.add(item.content) }
+            Button("Copy")                   { cm.copyToMac(item.content) }
+            Button("Send to Simulator")       { sm.pushToSim(item.content) }
+            Button("Save as Snippet")         { snm.add(item.content) }
             Divider()
-            Button("Sil", role: .destructive){ cm.remove(item) }
+            Button("Delete", role: .destructive){ cm.remove(item) }
         }
     }
 }
@@ -719,10 +719,10 @@ struct SnippetsContent: View {
                     Image(systemName: "bookmark")
                         .font(.system(size: 28))
                         .foregroundStyle(.quaternary)
-                    Text("Snippet yok")
+                    Text("No snippets")
                         .font(.callout)
                         .foregroundStyle(.tertiary)
-                    Text("Sık kullandığın metinleri\n+ butonu ile kaydet")
+                    Text("Save frequently used text\nusing the + button")
                         .font(.caption)
                         .foregroundStyle(.quaternary)
                         .multilineTextAlignment(.center)
@@ -731,7 +731,7 @@ struct SnippetsContent: View {
                 .padding(.vertical, 50)
             } else {
                 HStack {
-                    Text("\(snm.items.count) snippet")
+                    Text("\(snm.items.count) snippet\(snm.items.count == 1 ? "" : "s")")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.tertiary)
                         .textCase(.uppercase)
@@ -786,7 +786,7 @@ struct SnippetRow: View {
                     cm.copyToMac(item.content)
                     copied = true
                     Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
-                }.help("Kopyala")
+                }.help("Copy")
 
                 RowBtn(icon: sent ? "checkmark" : "iphone.and.arrow.forward", tint: sent ? .green : .secondary) {
                     sm.pushToSim(item.content)
@@ -794,7 +794,7 @@ struct SnippetRow: View {
                     Task { try? await Task.sleep(for: .seconds(1.5)); sent = false }
                 }
                 .disabled(sm.selectedID.isEmpty)
-                .help("Simülatöre Gönder")
+                .help("Send to Simulator")
             }
             .opacity(hovered ? 1 : 0.15)
         }
@@ -811,10 +811,10 @@ struct SnippetRow: View {
             Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
         }
         .contextMenu {
-            Button("Kopyala")                 { cm.copyToMac(item.content) }
-            Button("Simülatöre Gönder")       { sm.pushToSim(item.content) }
+            Button("Copy")                    { cm.copyToMac(item.content) }
+            Button("Send to Simulator")        { sm.pushToSim(item.content) }
             Divider()
-            Button("Sil", role: .destructive) { snm.remove(item) }
+            Button("Delete", role: .destructive) { snm.remove(item) }
         }
     }
 }
@@ -829,7 +829,7 @@ struct AddSnippetSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Yeni Snippet")
+            Text("New Snippet")
                 .font(.headline)
 
             TextEditor(text: $text)
@@ -841,12 +841,12 @@ struct AddSnippetSheet: View {
                     .stroke(Color.primary.opacity(0.08)))
 
             HStack {
-                Button("İptal") { isPresented = false }
+                Button("Cancel") { isPresented = false }
                     .keyboardShortcut(.cancelAction)
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("Kaydet") { snm.add(text); isPresented = false }
+                Button("Save") { snm.add(text); isPresented = false }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
