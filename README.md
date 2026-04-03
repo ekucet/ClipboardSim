@@ -33,7 +33,7 @@ As a bonus, it also maintains a persistent **clipboard history** so you never lo
 
 ## Requirements
 
-- macOS 14 Ventura or later
+- macOS 14 Sonoma or later
 - Xcode (for `xcrun simctl`) — already installed if you're a developer
 - At least one booted iOS Simulator
 
@@ -41,7 +41,16 @@ As a bonus, it also maintains a persistent **clipboard history** so you never lo
 
 ## Installation
 
-### Option A — Build with Xcode (Recommended)
+### Option A — Download DMG (Recommended)
+
+1. Go to the [Releases](https://github.com/your-username/MoveClipBoard/releases/latest) page
+2. Download `MoveClipBoard.dmg`
+3. Open the DMG, drag **MoveClipBoard.app** into your **Applications** folder
+4. Launch from `/Applications/MoveClipBoard.app`
+
+The DMG is signed and notarized by Apple — no Gatekeeper warning, just double-click and go.
+
+### Option B — Build with Xcode
 
 1. Clone the repository:
    ```bash
@@ -56,7 +65,7 @@ As a bonus, it also maintains a persistent **clipboard history** so you never lo
 
 3. Select your team in **Signing & Capabilities** (or use Personal Team for local use), then press **⌘R** to run.
 
-### Option B — Build from Terminal
+### Option C — Build from Terminal
 
 ```bash
 git clone https://github.com/your-username/MoveClipBoard.git
@@ -72,14 +81,14 @@ cp -R build/Build/Products/Release/MoveClipBoard.app /Applications/
 
 Then launch it from `/Applications/MoveClipBoard.app`.
 
-> **First launch:** macOS may show a Gatekeeper warning since the app isn't notarized. Right-click the app → **Open** → **Open** to bypass it once.
+> **First launch:** macOS may show a Gatekeeper warning since locally-built binaries aren't notarized. Right-click the app → **Open** → **Open** to bypass it once.
 
-### Option C — Add to Login Items (Auto-start)
+### Auto-start at Login
 
 1. Open **System Settings → General → Login Items**
 2. Click **+** and select `MoveClipBoard.app`
 
-The app will now start automatically when you log in and sit silently in the menu bar.
+The app will start automatically at login and sit silently in the menu bar.
 
 ---
 
