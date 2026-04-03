@@ -29,10 +29,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		FA045BEF2F804785006A9128 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		FA9215342F7FA4650087481E = {
 			isa = PBXGroup;
 			children = (
 				FA92153F2F7FA4650087481E /* MoveClipBoard */,
+				FA045BEF2F804785006A9128 /* Frameworks */,
 				FA92153E2F7FA4650087481E /* Products */,
 			);
 			sourceTree = "<group>";

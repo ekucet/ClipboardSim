@@ -43,14 +43,7 @@ struct HeaderBar: View {
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
 
-            Button { NSApplication.shared.terminate(nil) } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.quaternary)
-                    .symbolRenderingMode(.hierarchical)
-            }
-            .buttonStyle(.plain)
-            .help("Quit MoveClipBoard")
+
         }
         .padding(.horizontal, DS.hPad)
         .padding(.vertical, 11)
