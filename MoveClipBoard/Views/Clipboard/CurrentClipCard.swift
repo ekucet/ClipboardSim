@@ -14,13 +14,13 @@ struct CurrentClipCard: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(kind.color)
                 .frame(width: 30, height: 30)
-                .background(kind.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                .background(kind.color.opacity(0.14), in: RoundedRectangle(cornerRadius: 7))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("On Clipboard")
-                    .font(.system(size: 10, weight: .semibold))
+                Text("ON CLIPBOARD")
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
-                    .kerning(0.4)
+                    .kerning(0.8)
 
                 Text(cm.currentContent)
                     .font(.system(size: 12, design: kind == .text ? .default : .monospaced))

@@ -6,10 +6,10 @@ struct SectionHeader<T: View>: View {
 
     var body: some View {
         HStack {
-            Text(title)
+            Text(title.uppercased())
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .kerning(0.5)
+                .foregroundStyle(.quaternary)
+                .kerning(0.8)
             Spacer()
             trailing
         }

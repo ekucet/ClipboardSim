@@ -9,9 +9,14 @@ struct HeaderBar: View {
     var body: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "doc.on.clipboard.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.accentColor.opacity(0.15))
+                        .frame(width: 26, height: 26)
+                    Image(systemName: "doc.on.clipboard.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
                 Text("MoveClipBoard")
                     .font(.system(size: 13, weight: .semibold))
             }
@@ -34,16 +39,14 @@ struct HeaderBar: View {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
-                        .frame(width: 22, height: 22)
-                        .background(Color.accentColor.opacity(0.1),
-                                    in: RoundedRectangle(cornerRadius: 5))
+                        .frame(width: 26, height: 26)
+                        .background(Color.accentColor.opacity(0.12),
+                                    in: RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(.plain)
                 .help("Add Snippet")
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
-
-
         }
         .padding(.horizontal, DS.hPad)
         .padding(.vertical, 11)
