@@ -5,6 +5,28 @@ struct SimulatorBar: View {
     @Environment(SimulatorManager.self) private var sm
     @Environment(ClipboardManager.self) private var cm
 
+    private enum PullFeedback { case idle, pulled, empty, error }
+    @State private var pullFeedback: PullFeedback = .idle
+    @State private var isPulling = false
+
+    private var pullLabel: String {
+        switch pullFeedback {
+        case .idle:   return "← Mac"
+        case .pulled: return "✓ Mac"
+        case .empty:  return "Boş"
+        case .error:  return "Hata"
+        }
+    }
+
+    private var pullTint: Color {
+        switch pullFeedback {
+        case .idle:   return .orange
+        case .pulled: return .green
+        case .empty:  return .secondary
+        case .error:  return .red
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             HStack(spacing: 5) {
@@ -39,12 +61,26 @@ struct SimulatorBar: View {
                 }
                 .disabled(sm.selectedID.isEmpty)
 
-                SyncChip(label: "← Mac", tint: .orange, tip: "Pull Simulator clipboard to Mac") {
+                SyncChip(label: pullLabel, tint: pullTint, tip: "Pull Simulator clipboard to Mac") {
+                    guard !isPulling else { return }
+                    isPulling = true
                     Task {
-                        if let t = await sm.pullFromSim() { cm.copyToMac(t) }
+                        let result = await sm.pullFromSim()
+                        switch result {
+                        case .ok(let t):
+                            cm.copyToMac(t)
+                            withAnimation { pullFeedback = .pulled }
+                        case .empty:
+                            withAnimation { pullFeedback = .empty }
+                        case .error:
+                            withAnimation { pullFeedback = .error }
+                        }
+                        isPulling = false
+                        try? await Task.sleep(for: .seconds(1.5))
+                        withAnimation { pullFeedback = .idle }
                     }
                 }
-                .disabled(sm.selectedID.isEmpty)
+                .disabled(sm.selectedID.isEmpty || isPulling)
 
                 Button { sm.refresh() } label: {
                     ZStack {

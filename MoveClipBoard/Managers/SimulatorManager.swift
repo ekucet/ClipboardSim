@@ -1,5 +1,11 @@
 import Foundation
 
+enum PullResult {
+    case ok(String)
+    case empty
+    case error
+}
+
 @MainActor @Observable
 class SimulatorManager {
     var devices: [SimDevice] = []
@@ -29,13 +35,14 @@ class SimulatorManager {
         isRefreshing = false
     }
 
-    func pullFromSim() async -> String? {
+    func pullFromSim() async -> PullResult {
         let id = selectedID
-        guard !id.isEmpty else { return nil }
+        guard !id.isEmpty else { return .error }
         return await Task.detached {
             let out = mcbShell("/usr/bin/xcrun", ["simctl", "pbpaste", id])
             let t = out.trimmingCharacters(in: .whitespacesAndNewlines)
-            return t.isEmpty ? nil : t
+            if t.isEmpty { return PullResult.empty }
+            return PullResult.ok(t)
         }.value
     }
 
